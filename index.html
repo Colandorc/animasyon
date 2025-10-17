@@ -1,170 +1,219 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Benim sevgilim olur musun?</title>
-<style>
-  body {
-    margin: 0;
-    background-color: #0b1c39;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    font-family: "Segoe UI", Arial, sans-serif;
-    color: white;
-    overflow: hidden;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Benim sevgilim olur musun?</title>
+  <style>
+    :root{
+      --bg:#0b1428;
+      --text:#eaf1ff;
+      --yes:#ff5f86;
+      --no:#2f3c56;
+      --radius:18px;
+      --shadow:0 10px 30px rgba(0,0,0,.25);
+    }
 
-  img {
-    width: 300px;
-    max-width: 80%;
-    height: auto;
-    user-select: none;
-    -webkit-user-drag: none;
-    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));
-  }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 70% 10%, #162444 0%, #0b1428 60%, #081123 100%);
+      color:var(--text);
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+    }
 
-  h1 {
-    margin-top: 20px;
-    font-size: 28px;
-    text-align: center;
-  }
+    .stage{
+      width:min(980px, 92vw);
+      text-align:center;
+      display:grid;
+      grid-template-rows:auto auto auto;
+      align-items:center;
+      gap:18px;
+    }
 
-  .buttons {
-    margin-top: 25px;
-    display: flex;
-    gap: 30px;
-  }
+    h1{
+      margin:0;
+      font-weight:800;
+      letter-spacing:.2px;
+      text-shadow:0 3px 20px rgba(0,0,0,.35);
+      font-size:clamp(20px, 3.2vw, 34px);
+    }
 
-  button {
-    border: none;
-    border-radius: 15px;
-    font-size: 20px;
-    padding: 12px 28px;
-    color: white;
-    cursor: pointer;
-    transition: transform 0.3s ease, background-color 0.3s ease;
-  }
+    .fluffy-wrap{
+      display:grid;
+      place-items:center;
+      min-height:260px;
+    }
 
-  #yes {
-    background-color: #ff6f91;
-    box-shadow: 0 0 20px rgba(255, 111, 145, 0.5);
-  }
+    .fluffy{
+      width:min(420px, 78vw);
+      max-width:640px;
+      height:auto;
+      filter: drop-shadow(0 30px 45px rgba(0,0,0,.35));
+      user-select:none;
+      -webkit-user-drag:none;
+    }
 
-  #no {
-    background-color: #4a6986;
-    box-shadow: 0 0 20px rgba(74, 105, 134, 0.5);
-  }
+    .buttons{
+      display:flex;
+      justify-content:center;
+      gap:16px;
+      margin-top:6px;
+      flex-wrap:wrap;
+    }
 
-  #yes:hover {
-    transform: scale(1.1);
-  }
+    button{
+      border:none;
+      border-radius:var(--radius);
+      padding:14px 26px;
+      font-size:clamp(16px, 2.4vw, 22px);
+      font-weight:700;
+      color:#fff;
+      cursor:pointer;
+      transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+      box-shadow: var(--shadow);
+    }
+    #yesBtn{ background:var(--yes); }
+    #noBtn{ background:var(--no); }
 
-  canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-  }
-</style>
+    #yesBtn:hover{ transform:translateY(-2px) scale(1.04) }
+    #noBtn:hover{ transform:translateY(-2px) }
+
+    /* Konfeti tuvali */
+    canvas#confetti{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+    }
+
+    /* Küçülme büyüme sınırları */
+    .hidden{ display:none !important; }
+
+    /* Küçük cihazlarda boşluk */
+    @media (max-width:480px){
+      .buttons{ gap:12px }
+    }
+  </style>
 </head>
 <body>
+  <div class="stage">
+    <h1>Benim sevgilim olur musun? 💙</h1>
 
-  <img src="fluffy.png" alt="Tüylü Mavi Karakter">
-  <h1>Benim sevgilim olur musun? 💙</h1>
+    <div class="fluffy-wrap">
+      <!-- Görseli aynı klasöre fluffy.png olarak koyduysan direkt yüklenir -->
+      <img id="fluffy" class="fluffy" src="./fluffy.png" alt="Tüylü Mavi Karakter">
+    </div>
 
-  <div class="buttons">
-    <button id="yes">❤️ Evet</button>
-    <button id="no">🙈 Hayır</button>
+    <div class="buttons">
+      <button id="yesBtn">💖 Evet</button>
+      <button id="noBtn">🙈 Hayır</button>
+    </div>
   </div>
 
-  <canvas id="fireworks"></canvas>
+  <canvas id="confetti"></canvas>
 
-<script>
-const yes = document.getElementById("yes");
-const no = document.getElementById("no");
-let noScale = 1;
-let yesScale = 1;
+  <script>
+    // ---- Görsel adını yanlış yüklediysen otomatik yedek denemeler ----
+    (function ensureImageLoads(){
+      const img = document.getElementById('fluffy');
+      const candidates = [
+        './fluffy.png',
+        './Fluffy.png',
+        './fluffy.PNG',
+        './images/fluffy.png'
+      ];
+      let idx = 0;
 
-no.addEventListener("click", () => {
-  noScale *= 0.85;
-  yesScale *= 1.1;
-  no.style.transform = `scale(${noScale})`;
-  yes.style.transform = `scale(${yesScale})`;
+      img.onerror = () => {
+        idx++;
+        if (idx < candidates.length) {
+          img.src = candidates[idx];
+        }
+      };
+      // İlk src zaten HTML'de: ./fluffy.png
+    })();
 
-  if (noScale < 0.3) {
-    no.style.display = "none";
-  }
-});
+    // ---- Buton davranışları ----
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn  = document.getElementById('noBtn');
 
-yes.addEventListener("click", () => {
-  startFireworks();
-  yes.textContent = "💍 Hayırlı olsun!";
-});
+    let noScale  = 1.0;  // Hayır başlangıç ölçeği
+    let yesScale = 1.0;  // Evet  başlangıç ölçeği
 
-/* -------- Havai fişek animasyonu -------- */
-const canvas = document.getElementById("fireworks");
-const ctx = canvas.getContext("2d");
-canvas.width = innerWidth;
-canvas.height = innerHeight;
-
-window.addEventListener("resize", () => {
-  canvas.width = innerWidth;
-  canvas.height = innerHeight;
-});
-
-function random(min, max) {
-  return Math.random() * (max - min) + min;
-}
-
-const particles = [];
-
-function createFirework(x, y, colors) {
-  for (let i = 0; i < 60; i++) {
-    particles.push({
-      x,
-      y,
-      angle: random(0, Math.PI * 2),
-      speed: random(2, 6),
-      radius: random(2, 4),
-      color: colors[Math.floor(Math.random() * colors.length)],
-      alpha: 1
+    noBtn.addEventListener('click', () => {
+      noScale  = Math.max(0, noScale - 0.10);  // %10 küçült
+      yesScale = Math.min(2.2, yesScale + 0.10); // %10 büyüt
+      noBtn.style.transform  = `scale(${noScale})`;
+      yesBtn.style.transform = `scale(${yesScale})`;
+      if (noScale <= 0.15) {
+        noBtn.classList.add('hidden');
+      }
     });
-  }
-}
 
-function drawFireworks() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let i = 0; i < particles.length; i++) {
-    const p = particles[i];
-    const vx = Math.cos(p.angle) * p.speed;
-    const vy = Math.sin(p.angle) * p.speed + 1.5;
-    p.x += vx;
-    p.y += vy;
-    p.alpha -= 0.02;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-    ctx.fillStyle = `${p.color}${Math.floor(p.alpha * 255).toString(16)}`;
-    ctx.fill();
-  }
-  requestAnimationFrame(drawFireworks);
-}
+    yesBtn.addEventListener('click', () => {
+      launchConfetti();
+    });
 
-function startFireworks() {
-  const colors = ["#ff6f91", "#f7e018", "#00c8ff", "#ffb6c1", "#9b5de5"];
-  const interval = setInterval(() => {
-    createFirework(random(0, canvas.width), random(0, canvas.height / 1.5), colors);
-  }, 300);
+    // ---- Konfeti (basit & hızlı) ----
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    function resizeCanvas(){
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
-  setTimeout(() => clearInterval(interval), 3500);
-}
+    function rand(min, max){ return Math.random() * (max - min) + min }
 
-drawFireworks();
-</script>
+    function launchConfetti(){
+      const cx = window.innerWidth  / 2;
+      const cy = window.innerHeight / 2;
+
+      for (let i=0; i<180; i++){
+        particles.push({
+          x: cx, y: cy,
+          vx: rand(-7,7),
+          vy: rand(-14,4),
+          g:  0.22,
+          life: rand(70,110),
+          size: rand(3,7),
+          color: `hsl(${Math.random()*360}, 100%, 60%)`
+        });
+      }
+      animate();
+    }
+
+    let rafId = null;
+    function animate(){
+      if (rafId) cancelAnimationFrame(rafId);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      particles.forEach((p, i)=>{
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.g;
+        p.life -= 1;
+
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fill();
+
+        if (p.life <= 0 || p.y > canvas.height + 40){
+          particles.splice(i,1);
+        }
+      });
+
+      if (particles.length){
+        rafId = requestAnimationFrame(animate);
+      }
+    }
+  </script>
 </body>
 </html>
