@@ -33,33 +33,47 @@
     .container{
       z-index:2;
       text-align:center;
-      padding:18px 14px 28px;
+      padding:16px 14px 22px;
       width:min(92vw, 760px);
       filter: drop-shadow(0 16px 48px rgba(0,0,0,.45));
     }
 
     h1{
-      margin:0 0 16px;
+      margin:0 0 12px;
       font-weight:700;
       font-size: clamp(20px, 3.4vw, 30px);
       letter-spacing:.2px;
       text-shadow: 0 10px 30px rgba(0,0,0,.55);
     }
 
+    /* AYICIK + HAFİF ANİMASYON */
     .fluffy{
       width:min(360px, 70vw);
       max-width:420px;
       filter: drop-shadow(0 14px 40px rgba(0,0,0,.6));
       user-select:none; -webkit-user-drag:none;
+      display:block;
+      margin: 0 auto 8px;           /* << butonlara yaklaşsın */
+      transform-origin:50% 60%;
+      animation: float 5.6s ease-in-out infinite, breathe 4.4s ease-in-out infinite;
+    }
+    @keyframes float{
+      0%,100%{ transform: translateY(0) rotate(0deg) }
+      50%     { transform: translateY(-6px) rotate(0.6deg) }
+    }
+    @keyframes breathe{
+      0%,100%{ filter: drop-shadow(0 14px 40px rgba(0,0,0,.6)) }
+      50%     { filter: drop-shadow(0 16px 46px rgba(0,0,0,.7)) }
     }
 
     .buttons{
-      margin-top: 22px;
-      display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
+      margin-top: 6px;               /* << daha yakın */
+      display:flex; gap:12px; justify-content:center; flex-wrap:wrap;
     }
     button{
       border:0; cursor:pointer; border-radius:20px;
-      padding:14px 28px; font-weight:700; font-size:clamp(18px, 2.4vw, 22px);
+      padding:12px 24px;             /* biraz kompakt */
+      font-weight:700; font-size:clamp(17px, 2.4vw, 21px);
       transition: transform .16s ease, box-shadow .16s ease, opacity .16s;
       color:#fff;
     }
@@ -69,7 +83,7 @@
 
     @media (max-width:420px){
       .buttons{gap:10px}
-      button{padding:12px 22px}
+      button{padding:11px 20px}
     }
   </style>
 </head>
@@ -91,7 +105,7 @@
   <canvas id="fireworks"></canvas>
 
   <script>
-  // =============== Responsive Canvas Helpers ===============
+  // =============== HiDPI Canvas Setup ===============
   function setupHiDPICanvas(canvas){
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const rect = { w: innerWidth, h: innerHeight };
@@ -121,7 +135,7 @@
       phase: Math.random()*Math.PI*2,
       tw: 0.008 + Math.random()*0.02,     // twinkle speed
       driftX: (Math.random() - .5) * 0.04, // horizontal drift
-      driftY: (Math.random() - .5) * 0.02  // vertical drift (çok az)
+      driftY: (Math.random() - .5) * 0.02  // vertical drift
     }));
     SHOOTERS = [];
   }
@@ -129,16 +143,15 @@
   addEventListener('resize', resetStars);
 
   function spawnShooter(){
-    // bazen sağ üstten sola alta kayan, bazen ters
     const fromTop = Math.random() < .6;
     const x = fromTop ? innerWidth * (0.55 + Math.random()*0.4) : innerWidth * (0.05 + Math.random()*0.3);
     const y = fromTop ? innerHeight * (0.05 + Math.random()*0.2) : innerHeight * (0.35 + Math.random()*0.3);
-    const ang = fromTop ? Math.PI + Math.random()*0.6 : (Math.PI*1.6 + Math.random()*0.4); // çapraz
+    const ang = fromTop ? Math.PI + Math.random()*0.6 : (Math.PI*1.6 + Math.random()*0.4);
     const spd = 7 + Math.random()*4;
     SHOOTERS.push({
       x, y, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
       life: 60 + Math.random()*20,
-      len: 140 + Math.random()*120, // iz uzunluğu (px)
+      len: 140 + Math.random()*120,
       hue: Math.floor(Math.random()*360)
     });
   }
@@ -147,13 +160,11 @@
   function drawStars(t=0){
     sCtx.clearRect(0,0,innerWidth,innerHeight);
 
-    // hafif galaksi gradyenti
     const g = sCtx.createRadialGradient(innerWidth*0.7, innerHeight*0.1, 0, innerWidth*0.7, innerHeight*0.1, Math.max(innerWidth,innerHeight));
     g.addColorStop(0, 'rgba(20,40,90,0.35)');
     g.addColorStop(1, 'rgba(7,15,30,0)');
     sCtx.fillStyle = g; sCtx.fillRect(0,0,innerWidth,innerHeight);
 
-    // yıldızlar
     for(const s of STARS){
       s.phase += s.tw;
       s.x += s.driftX; s.y += s.driftY;
@@ -167,17 +178,13 @@
     }
     sCtx.globalAlpha = 1;
 
-    // shooting stars (arka planda motion blur gibi)
     if (t - lastShoot > 1500 + Math.random()*3000 && SHOOTERS.length < 2){
       spawnShooter(); lastShoot = t;
     }
     for (let i = SHOOTERS.length-1; i >= 0; i--){
       const sh = SHOOTERS[i];
       sh.x += sh.vx; sh.y += sh.vy; sh.life--;
-      const tailX = sh.x - sh.vx * 6;
-      const tailY = sh.y - sh.vy * 6;
-
-      const grad = sCtx.createLinearGradient(sh.x, sh.y, tailX, tailY);
+      const grad = sCtx.createLinearGradient(sh.x, sh.y, sh.x - sh.vx*6, sh.y - sh.vy*6);
       grad.addColorStop(0, `hsla(${sh.hue},100%,80%,0.9)`);
       grad.addColorStop(1, `hsla(${sh.hue},100%,50%,0)`);
       sCtx.strokeStyle = grad;
@@ -196,7 +203,7 @@
   }
   requestAnimationFrame(drawStars);
 
-  // =============== BUTTON LOGIC + FIREWORKS ===============
+  // =============== BUTTONS + FIREWORKS ===============
   const yesBtn = document.getElementById('yesBtn');
   const noBtn  = document.getElementById('noBtn');
   const fwCV   = document.getElementById('fireworks');
@@ -223,7 +230,7 @@
     startFireworks(4200);
   });
 
-  // --- Fireworks (daha gerçekçi, yerçekimli, renkli) ---
+  // --- Fireworks ---
   const fwParts = [];
   function rnd(a,b){ return Math.random()*(b-a)+a }
   function fireworkAt(x,y){
@@ -255,22 +262,16 @@
     for(let i=fwParts.length-1;i>=0;i--){
       const p = fwParts[i];
       p.x += p.vx; p.y += p.vy;
-      p.vy += 0.12;       // yerçekimi
-      p.vx *= 0.99;       // hava sürtünmesi
-      p.vy *= 0.99;
-      p.a  -= 0.012;      // sönme
+      p.vy += 0.12; p.vx *= 0.99; p.vy *= 0.99;
+      p.a  -= 0.012;
 
       if(p.a <= 0 || p.y > innerHeight+40){
         fwParts.splice(i,1); continue;
       }
-
-      // iz (hafif glow)
       fCtx.globalCompositeOperation = 'lighter';
       fCtx.globalAlpha = Math.max(0, p.a);
       fCtx.fillStyle = p.col;
-      fCtx.beginPath();
-      fCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-      fCtx.fill();
+      fCtx.beginPath(); fCtx.arc(p.x, p.y, p.r, 0, Math.PI*2); fCtx.fill();
       fCtx.globalCompositeOperation = 'source-over';
       fCtx.globalAlpha = 1;
     }
