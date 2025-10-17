@@ -1,281 +1,192 @@
 <!doctype html>
 <html lang="tr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Mavi Tüylü Mini Canavar – Statik Fur</title>
-<meta name="theme-color" content="#0c1424">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>emrullahaydogdu design · plush</title>
+<meta name="theme-color" content="#0b1428" />
 <style>
   :root{
-    --bg1:#0c1424; --bg2:#182542;
+    --bg1:#0b1428; --bg2:#1b2a4f;
+    --glass:rgba(255,255,255,.06); --line:rgba(255,255,255,.14);
   }
   html,body{height:100%;margin:0}
   body{
-    background: radial-gradient(1200px 800px at 70% 10%, var(--bg2), var(--bg1));
+    background: radial-gradient(1400px 900px at 70% 8%, var(--bg2), var(--bg1));
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-    overflow:hidden; color:#eaf4ff;
+    color:#eef6ff; overflow:hidden;
   }
-  #c{ position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:manipulation; cursor:pointer; }
-  .credit{
-    position:fixed; right:14px; bottom:12px; z-index:10;
-    font-size:12.5px; opacity:.95;
-    background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14);
-    padding:6px 10px; border-radius:10px; backdrop-filter:blur(6px);
+  .stage{ position:fixed; inset:0; display:grid; place-items:center; }
+  .wrap{
+    position:relative; width:min(86vmin, 860px); aspect-ratio:1/1;
+    filter: drop-shadow(0 40px 80px rgba(0,0,0,.5)); user-select:none; -webkit-user-drag:none;
+    transform-style:preserve-3d; perspective:800px;
   }
+  #monster{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+    transform-origin:50% 60%;
+    will-change:transform;
+  }
+  /* üst katman efekt kanvasları */
+  canvas.fx{ position:absolute; inset:0; width:100%; height:100%; display:block; pointer-events:none; }
+  /* altına yumuşak zemin gölge */
+  .shadow{
+    position:absolute; left:50%; bottom:3.5%; transform:translateX(-50%);
+    width:62%; height:26px; border-radius:50%;
+    background: radial-gradient(closest-side, rgba(0,0,0,.32), rgba(0,0,0,0));
+    filter: blur(2px);
+  }
+
+  /* ipucu & imza */
   .hint{
-    position:fixed; left:14px; top:12px; z-index:10; font-size:13px;
-    background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14);
+    position:fixed; left:14px; top:12px; z-index:20; font-size:13px;
+    background:var(--glass); border:1px solid var(--line);
     padding:8px 12px; border-radius:12px; backdrop-filter: blur(6px);
   }
   @media (max-width:520px){ .hint{ display:none } }
+  .credit{
+    position:fixed; right:14px; bottom:12px; z-index:20;
+    font-size:12.5px; opacity:.95; background:var(--glass); border:1px solid var(--line);
+    padding:6px 10px; border-radius:10px; backdrop-filter:blur(6px)
+  }
 </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<div class="hint">🩵 dokun / tıkla: kalpler</div>
+<div class="hint">🩵 dokun / hareket ettir: hafif parallax</div>
+<div class="stage">
+  <div class="wrap" id="wrap">
+    <img id="monster" src="monster.png" alt="plush" />
+    <div class="shadow"></div>
+    <!-- efekt katmanları -->
+    <canvas id="bloom" class="fx"></canvas>   <!-- yumuşak parlama -->
+    <canvas id="spark" class="fx"></canvas>   <!-- minik parıltı taneleri -->
+    <canvas id="glow"  class="fx"></canvas>   <!-- yumuşak ışık nefesi -->
+  </div>
+</div>
 <div class="credit">emrullahaydogdu design</div>
 
 <script>
-/* ===========================================================
-   Mavi Tüylü Mini Canavar – STATİK fur + çok hafif uç titreşimi
-   - Kıllar merkezden dışarı doğru; dönme yok.
-   - Uçta mikro wiggle (kapamak için WIGGLE=0).
-   - Göz kapağı gradyanı, parlak iri göz, minik burun (yeşil benek)
-   - Ellerde parmak izlenimi, karın yumuşak parıltısı
-   =========================================================== */
+/* ========= ayarlar ========= */
+const IMG_SRC = 'monster.png'; // gerekirse değiştir
+const BREATH = { amp: 0.012, speed: 2.0 }; // 0.012 = %1.2 scale; istersen 0 yap
+const PARALLAX = 10; // px (telefon için düşük, istersen 16-20 yap)
+const SPARKLES = 16; // parıltı taneciği (yumuşak)
+const BLOOM_STRENGTH = 0.55; // 0..1 yumuşak “kadife” parlama
 
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
+/* ========= elemanlar ========= */
+const wrap  = document.getElementById('wrap');
+const imgEl = document.getElementById('monster');
+const cBloom= document.getElementById('bloom'), xBloom=cBloom.getContext('2d');
+const cSpark= document.getElementById('spark'), xSpark=cSpark.getContext('2d');
+const cGlow = document.getElementById('glow'),  xGlow =cGlow.getContext('2d');
 
-function fit() {
-  const dpr = Math.max(1, Math.min(2, devicePixelRatio||1));
-  canvas.width  = Math.floor(innerWidth  * dpr);
-  canvas.height = Math.floor(innerHeight * dpr);
-  canvas.style.width='100%'; canvas.style.height='100%';
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+/* ========= boyutlandırma ========= */
+function fitCanvas(c){
+  const r = c.getBoundingClientRect();
+  const d = Math.max(1, Math.min(2, devicePixelRatio||1));
+  c.width = Math.floor(r.width*d); c.height = Math.floor(r.height*d);
+  c.style.width = r.width+'px'; c.style.height = r.height+'px';
+  const ctx = c.getContext('2d'); ctx.setTransform(d,0,0,d,0,0);
 }
-addEventListener('resize', fit, {passive:true});
-fit();
+function fitAll(){ [cBloom,cSpark,cGlow].forEach(fitCanvas); }
+addEventListener('resize', fitAll, {passive:true}); fitAll();
 
-function sceneSize(){
-  const s = Math.min(innerWidth, innerHeight) * 0.78;
-  return { cx: innerWidth/2, cy: innerHeight/2 + s*0.02, R: s*0.36 };
-}
-
-// hızlı “noise”
-function fnoise(x,y,t=0){
-  return (Math.sin(1.17*x + 0.93*y + 0.6*t) +
-          Math.sin(0.6*x - 1.4*y + 1.1*t)*0.5)*0.5;
-}
-
-const COL = {
-  furDark:'#0e5a98',
-  furMid :'#1aa1ff',
-  furLite:'#91d9ff',
-  skin   :'#46c1ff',
-  eye    :'#0c223a',
-  white  :'#f3fbff',
-  pink   :'rgba(255,132,176,.45)'
+/* ========= görsel yüklendiğinde ========= */
+const baseImg = new Image(); baseImg.src = IMG_SRC;
+baseImg.onload = () => {
+  drawBloom(); // ilk bloom
+  drawSpark(true); // ilk parıltılar
 };
 
-const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-
-// kıl parametreleri
-const HAIR_RING   = isMobile ? 2600 : 5200;  // dış saçak
-const HAIR_INNER  = isMobile ? 1200 : 2200;  // iç hacim
-const HAIR_LEN    = isMobile ? 42   : 58;
-
-// uç titreşimi (0 yaparsan tamamen sabit görünür)
-const WIGGLE = 0.06;      // 0 … 0.12 öneri
-
-// kalpler
-const hearts=[];
-addEventListener('pointerdown', e=>spawnHeart(e.clientX,e.clientY));
-function spawnHeart(x,y){
-  hearts.push({x,y,r:9+Math.random()*4, vx:(Math.random()-.5)*0.6, vy:-(.8+Math.random()*0.5), life:1});
+/* ========= nefes & parallax ========= */
+let t0 = performance.now();
+let px = 0, py = 0; // hedef parallax
+let cx = 0, cy = 0; // anlık (smooth)
+function updateParallax(e){
+  const rect = wrap.getBoundingClientRect();
+  const x = (e.clientX - rect.left)/rect.width - 0.5;
+  const y = (e.clientY - rect.top)/rect.height - 0.5;
+  px = x*PARALLAX; py = y*PARALLAX;
 }
+addEventListener('pointermove', updateParallax, {passive:true});
+addEventListener('pointerdown', updateParallax, {passive:true});
 
-// göz/blink
-let blinkT=0, blinkInt=2.6;
-function eyeScaleY(dt){
-  blinkT+=dt;
-  if(blinkT>blinkInt){ blinkT=0; blinkInt=2.2+Math.random()*2.2; }
-  const k=0.12; // kapanış süresi
-  if(blinkT<k){ // kapan
-    const p=Math.min(1,blinkT/k);
-    return 1-(Math.sin(Math.PI*p)*0.92);
-  }else if(blinkT<2*k){ // açıl
-    const p=Math.min(1,(blinkT-k)/k);
-    return 0.08+(Math.sin(Math.PI*p)*0.92);
-  }
-  return 1;
-}
-
-const pointer={x:innerWidth/2,y:innerHeight/2};
-addEventListener('pointermove',e=>{ pointer.x=e.clientX; pointer.y=e.clientY; },{passive:true});
-
-let tPrev=performance.now()/1000, tTot=0;
-function loop(){
-  const tNow=performance.now()/1000;
-  const dt=Math.min(0.033,tNow-tPrev);
-  tPrev=tNow; tTot+=dt;
-
-  const {cx,cy,R}=sceneSize();
-
-  // arka parıltı
-  ctx.clearRect(0,0,innerWidth,innerHeight);
-  for(let i=0;i<14;i++){
-    const x=(i*97)%innerWidth, y=(i*61)%innerHeight;
-    const g=ctx.createRadialGradient(x,y,0,x,y,120);
-    g.addColorStop(0,'rgba(255,255,255,.06)');
-    g.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,120,0,Math.PI*2); ctx.fill();
-  }
-
-  // zemin gölge
-  ctx.fillStyle='rgba(0,0,0,.28)';
-  ctx.beginPath(); ctx.ellipse(cx,cy+R*0.9,R*1.35,R*0.16,0,0,Math.PI*2); ctx.fill();
+function animate(){
+  const t = performance.now();
+  const dt = Math.min(33, t - t0); t0 = t;
 
   // nefes
-  const breathe=1+Math.sin(tTot*2.0)*0.015;
+  const breath = 1 + Math.sin(t*0.001*BREATH.speed)*BREATH.amp;
+  imgEl.style.transform = `translate3d(${cx}px,${cy}px,0) scale(${breath})`;
 
-  // gövde gradient
-  const gBody=ctx.createRadialGradient(cx,cy-R*0.32,R*0.2,cx,cy,R*breathe);
-  gBody.addColorStop(0, COL.furLite);
-  gBody.addColorStop(.45, COL.skin);
-  gBody.addColorStop(1, COL.furMid);
-  ctx.fillStyle=gBody; ctx.beginPath(); ctx.arc(cx,cy,R*breathe,0,Math.PI*2); ctx.fill();
+  // parallax easing
+  cx += (px - cx) * 0.08;
+  cy += (py - cy) * 0.08;
 
-  // dış saçak – merkezden dışarı, yön sabit; sadece uçta mikro wiggle
-  ctx.lineCap='round';
-  for(let i=0;i<HAIR_RING;i++){
-    const a=(i/HAIR_RING)*Math.PI*2;
-    const x0=cx+Math.cos(a)*R*0.98;
-    const y0=cy+Math.sin(a)*R*0.98;
+  // soft glow “nefesi”
+  drawGlow(t);
 
-    // sabit yön (radial), uçta hafif jitter
-    const dir=a;
-    const L=HAIR_LEN*(0.9+Math.random()*0.2);
-    const wig = WIGGLE ? (WIGGLE*HAIR_LEN * fnoise(i*0.02, tTot*1.1)) : 0;
-    const x1=x0+Math.cos(dir)*(L+wig);
-    const y1=y0+Math.sin(dir)*(L+wig);
+  // sparkleri arada güncelle
+  if ((t|0) % 60 < 16) drawSpark(false);
 
-    // kıvrım çok küçük, dönme hissi yaratmıyor
-    const mx=(x0+x1)/2 + Math.cos(dir+Math.PI/2)* (2.0 * fnoise(i*0.03, tTot*0.8));
-    const my=(y0+y1)/2 + Math.sin(dir+Math.PI/2)* (2.0 * fnoise(i*0.03+10, tTot*0.8));
-
-    const gr=ctx.createLinearGradient(x0,y0,x1,y1);
-    gr.addColorStop(0,COL.furLite);
-    gr.addColorStop(.5,COL.furMid);
-    gr.addColorStop(1,COL.furDark);
-    ctx.strokeStyle=gr; ctx.lineWidth=1.2;
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.quadraticCurveTo(mx,my,x1,y1); ctx.stroke();
-  }
-
-  // iç hacim tüyleri (düz çizgi, hafif saydam)
-  ctx.strokeStyle='rgba(145,217,255,.28)'; ctx.lineWidth=1.1;
-  for(let i=0;i<HAIR_INNER;i++){
-    const r=Math.sqrt(Math.random())*(R*0.9), a=Math.random()*Math.PI*2;
-    const x0=cx+Math.cos(a)*r, y0=cy+Math.sin(a)*r;
-    const dir=a+Math.PI/2, L=(HAIR_LEN*0.55)*(0.5 + r/R);
-    const x1=x0+Math.cos(dir)*L, y1=y0+Math.sin(dir)*L;
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-  }
-
-  // karın soft parıltı
-  const gBelly=ctx.createRadialGradient(cx, cy-R*0.06, R*0.12, cx, cy, R*0.85);
-  gBelly.addColorStop(0,'rgba(255,255,255,.34)'); gBelly.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=gBelly; ctx.beginPath(); ctx.arc(cx,cy,R*0.96,0,Math.PI*2); ctx.fill();
-
-  // ELLER (pofuduk + küçük parmak izlenimi)
-  function hand(x,y,flip=1){
-    ctx.save(); ctx.translate(x,y); ctx.scale(flip,1);
-    const w=R*0.28, h=R*0.38;
-    // avuç
-    const g=ctx.createLinearGradient(-w*0.3,-h*0.1,w*0.3,h*0.3);
-    g.addColorStop(0,COL.furLite); g.addColorStop(1,COL.skin);
-    ctx.fillStyle=g; ctx.beginPath();
-    ctx.ellipse(0,0,w*0.55,h*0.72,0,0,Math.PI*2); ctx.fill();
-    // parmak tomrukları
-    ctx.fillStyle='rgba(255,255,255,.15)';
-    for(let i=-1;i<=1;i++){ ctx.beginPath(); ctx.ellipse(i*w*0.18,h*0.1,w*0.14,h*0.16,0,0,Math.PI*2); ctx.fill(); }
-    ctx.restore();
-  }
-  hand(cx-R*0.88, cy+R*0.10, 1);
-  hand(cx+R*0.88, cy+R*0.10, -1);
-
-  // GÖZLER
-  const eyeSep=R*0.62, eyeR=R*0.39, irisR=eyeR*0.56, pupilR=irisR*0.48;
-  const sY=eyeScaleY(dt);
-  const tx = (pointer.x - cx) / (R*1.2), ty = (pointer.y - (cy-R*0.1)) / (R*1.2);
-  function drawEye(ex,ey){
-    // çukur
-    ctx.fillStyle='rgba(10,29,51,.55)';
-    ctx.beginPath(); ctx.ellipse(ex,ey,eyeR,eyeR*1.08,0,0,Math.PI*2); ctx.fill();
-
-    // kapak ve beyaz: hafif mavi kenar
-    ctx.save(); ctx.translate(ex,ey); ctx.scale(1,sY);
-    const gW=ctx.createRadialGradient(-eyeR*0.25,-eyeR*0.25,eyeR*0.2,0,0,eyeR);
-    gW.addColorStop(0,COL.white); gW.addColorStop(1,'#dff1ff');
-    ctx.fillStyle=gW; ctx.beginPath(); ctx.ellipse(0,0,eyeR,eyeR,0,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-
-    // iris + pupil hedefi
-    const ix=ex+Math.max(-eyeR*0.34, Math.min(eyeR*0.34, tx*eyeR));
-    const iy=ey+Math.max(-eyeR*0.34, Math.min(eyeR*0.34, ty*eyeR));
-    const gI=ctx.createRadialGradient(ix-irisR*0.25, iy-irisR*0.25, irisR*0.2, ix, iy, irisR);
-    gI.addColorStop(0,'#9fe2ff'); gI.addColorStop(.5,'#1aa1ff'); gI.addColorStop(1,'#0e5a98');
-    ctx.fillStyle=gI; ctx.beginPath(); ctx.arc(ix,iy,irisR,0,Math.PI*2); ctx.fill();
-
-    // pupil
-    ctx.fillStyle=COL.eye; ctx.beginPath(); ctx.arc(ix,iy,pupilR,0,Math.PI*2); ctx.fill();
-
-    // parlama (büyük + küçük)
-    ctx.fillStyle='rgba(255,255,255,.95)';
-    ctx.beginPath(); ctx.arc(ix-pupilR*0.62, iy-pupilR*0.62, pupilR*0.36, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(ix-pupilR*0.18, iy-pupilR*0.18, pupilR*0.12, 0, Math.PI*2); ctx.fill();
-  }
-  drawEye(cx-eyeSep/2, cy-R*0.26);
-  drawEye(cx+eyeSep/2, cy-R*0.26);
-
-  // kaş
-  ctx.strokeStyle='rgba(12,34,58,.9)'; ctx.lineWidth=10; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(cx-eyeSep/2-eyeR*0.62, cy-R*0.60); ctx.lineTo(cx-eyeSep/2+eyeR*0.32, cy-R*0.64); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx+eyeSep/2-eyeR*0.32, cy-R*0.64); ctx.lineTo(cx+eyeSep/2+eyeR*0.62, cy-R*0.60); ctx.stroke();
-
-  // burun & ağız (foto referansındaki minik yeşil benekli ton)
-  ctx.fillStyle=COL.eye; ctx.beginPath(); ctx.arc(cx, cy-R*0.02, R*0.096, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle='#52ff9a'; ctx.beginPath(); ctx.arc(cx, cy-R*0.02, R*0.036, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle='#0b1f36'; ctx.lineWidth=6;
-  ctx.beginPath(); ctx.moveTo(cx-R*0.11, cy+R*0.13); ctx.quadraticCurveTo(cx, cy+R*0.18, cx+R*0.11, cy+R*0.13); ctx.stroke();
-
-  // yanak
-  ctx.fillStyle=COL.pink;
-  ctx.beginPath(); ctx.arc(cx-eyeSep*0.55, cy+R*0.09, R*0.09, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx+eyeSep*0.55, cy+R*0.09, R*0.09, 0, Math.PI*2); ctx.fill();
-
-  // kalpler
-  for(let i=hearts.length-1;i>=0;i--){
-    const h=hearts[i];
-    h.x+=h.vx*(60*dt); h.y+=h.vy*(60*dt); h.vy-=0.01; h.life-=dt*0.6;
-    if(h.life<=0){ hearts.splice(i,1); continue; }
-    drawHeart(h.x,h.y,h.r,h.life);
-  }
-
-  requestAnimationFrame(loop);
+  requestAnimationFrame(animate);
 }
-requestAnimationFrame(loop);
+requestAnimationFrame(animate);
 
-// kalp çizimi
-function drawHeart(x,y,r,a=1){
-  ctx.save(); ctx.translate(x,y); ctx.globalAlpha=Math.max(0,Math.min(1,a));
-  ctx.fillStyle='#ff84b0';
-  ctx.beginPath();
-  ctx.moveTo(0, r*0.6);
-  ctx.bezierCurveTo(r*1.2, r*-0.3, r*1.0, r*-1.4, 0, r*-0.6);
-  ctx.bezierCurveTo(r*-1.0, r*-1.4, r*-1.2, r*-0.3, 0, r*0.6);
-  ctx.fill(); ctx.restore();
+/* ========= yumuşak parlama (bloom) =========
+   teknik: resmi küçük boyda çiz → blur → tekrar üstte additive karıştır
+============================================ */
+function drawBloom(){
+  const w = cBloom.clientWidth, h = cBloom.clientHeight;
+  xBloom.clearRect(0,0,w,h);
+
+  // resmi low-res olarak küçült
+  const scale = 0.6; // düşük boy
+  const bw = w*scale, bh = h*scale;
+  // merkezde konumla
+  const dx = (w - bw)/2, dy = (h - bh)/2;
+
+  // blur ve yumuşak parlama
+  xBloom.save();
+  xBloom.filter = 'blur(8px) brightness(1.15) saturate(1.08)';
+  xBloom.globalAlpha = BLOOM_STRENGTH;
+  xBloom.drawImage(baseImg, dx, dy, bw, bh);
+  xBloom.restore();
 }
+
+/* ========= parıltı taneleri ========= */
+const stars = Array.from({length:SPARKLES}, (_,i)=>({
+  x: Math.random(), y: Math.random(), r: 60 + Math.random()*120, t: Math.random()*Math.PI*2
+}));
+function drawSpark(initial){
+  const w = cSpark.clientWidth, h = cSpark.clientHeight;
+  xSpark.clearRect(0,0,w,h);
+  for(const s of stars){
+    if(!initial){ s.t += 0.002; }
+    const x = s.x*w + Math.sin(s.t)*6;
+    const y = s.y*h + Math.cos(s.t*1.3)*6;
+    const g = xSpark.createRadialGradient(x,y,0,x,y,s.r);
+    g.addColorStop(0,'rgba(255,255,255,.08)');
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    xSpark.fillStyle = g; xSpark.beginPath(); xSpark.arc(x,y,s.r,0,Math.PI*2); xSpark.fill();
+  }
+}
+
+/* ========= yumuşak ışık nefesi (çok hafif) ========= */
+function drawGlow(t){
+  const w = cGlow.clientWidth, h = cGlow.clientHeight;
+  xGlow.clearRect(0,0,w,h);
+  const pulse = (Math.sin(t*0.0014)+1)/2; // 0..1
+  const R = 180 + pulse*80;
+  const x = w*0.52, y = h*0.38; // üst-orta yönde bir ışık
+  const g = xGlow.createRadialGradient(x,y,0,x,y,R);
+  g.addColorStop(0, `rgba(255,255,255,${0.10 + pulse*0.05})`);
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  xGlow.fillStyle = g; xGlow.beginPath(); xGlow.arc(x,y,R,0,Math.PI*2); xGlow.fill();
+}
+
+/* ========= ilk merkezde parallax için kısa dokunuş ========= */
+wrap.addEventListener('pointerleave', ()=>{ px=py=0; }, {passive:true});
 </script>
 </body>
 </html>
