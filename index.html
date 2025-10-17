@@ -14,266 +14,211 @@
     html,body{height:100%}
     body{
       margin:0;
-      font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       color:var(--txt);
       overflow:hidden;
       display:grid;
       place-items:center;
-      background:#070f20; /* fallback */
+      background:#070f20;
     }
-
-    /* Katmanlar: stars (en altta) / content / fireworks (en üst) */
-    canvas#stars, canvas#fireworks{
-      position:fixed; inset:0; width:100%; height:100%;
-      pointer-events:none; display:block;
+    canvas#stars,canvas#fireworks{
+      position:fixed;inset:0;width:100%;height:100%;
+      pointer-events:none;display:block;
     }
     #stars{z-index:0}
     #fireworks{z-index:3}
-
     .container{
-      z-index:2;
-      text-align:center;
+      z-index:2;text-align:center;
       padding:16px 14px 22px;
-      width:min(92vw, 760px);
-      filter: drop-shadow(0 16px 48px rgba(0,0,0,.45));
+      width:min(92vw,760px);
+      filter:drop-shadow(0 16px 48px rgba(0,0,0,.45));
     }
-
     h1{
-      margin:0 0 12px;
-      font-weight:700;
-      font-size: clamp(20px, 3.4vw, 30px);
-      letter-spacing:.2px;
-      text-shadow: 0 10px 30px rgba(0,0,0,.55);
+      margin:0 0 12px;font-weight:700;
+      font-size:clamp(20px,3.4vw,30px);
+      text-shadow:0 10px 30px rgba(0,0,0,.55);
     }
-
-    /* AYICIK + HAFİF ANİMASYON */
     .fluffy{
-      width:min(360px, 70vw);
-      max-width:420px;
-      filter: drop-shadow(0 14px 40px rgba(0,0,0,.6));
-      user-select:none; -webkit-user-drag:none;
-      display:block;
-      margin: 0 auto 8px;           /* << butonlara yaklaşsın */
+      width:min(360px,70vw);max-width:420px;
+      filter:drop-shadow(0 14px 40px rgba(0,0,0,.6));
+      user-select:none;-webkit-user-drag:none;
+      display:block;margin:0 auto 6px;
       transform-origin:50% 60%;
-      animation: float 5.6s ease-in-out infinite, breathe 4.4s ease-in-out infinite;
+      animation:float2 5.2s ease-in-out infinite,breathe 4.4s ease-in-out infinite;
     }
-    @keyframes float{
-      0%,100%{ transform: translateY(0) rotate(0deg) }
-      50%     { transform: translateY(-6px) rotate(0.6deg) }
+    @keyframes float2{
+      0%{transform:translate(0,0)rotate(0deg)}
+      25%{transform:translate(4px,-6px)rotate(0.6deg)}
+      50%{transform:translate(0,-12px)rotate(1.2deg)}
+      75%{transform:translate(-4px,-6px)rotate(0.6deg)}
+      100%{transform:translate(0,0)rotate(0deg)}
     }
     @keyframes breathe{
-      0%,100%{ filter: drop-shadow(0 14px 40px rgba(0,0,0,.6)) }
-      50%     { filter: drop-shadow(0 16px 46px rgba(0,0,0,.7)) }
+      0%,100%{filter:drop-shadow(0 14px 40px rgba(0,0,0,.6))}
+      50%{filter:drop-shadow(0 18px 48px rgba(0,0,0,.72))}
     }
-
     .buttons{
-      margin-top: 6px;               /* << daha yakın */
-      display:flex; gap:12px; justify-content:center; flex-wrap:wrap;
+      margin-top:6px;display:flex;gap:12px;
+      justify-content:center;flex-wrap:wrap;
     }
     button{
-      border:0; cursor:pointer; border-radius:20px;
-      padding:12px 24px;             /* biraz kompakt */
-      font-weight:700; font-size:clamp(17px, 2.4vw, 21px);
-      transition: transform .16s ease, box-shadow .16s ease, opacity .16s;
+      border:0;cursor:pointer;border-radius:20px;
+      padding:12px 24px;font-weight:700;
+      font-size:clamp(17px,2.4vw,21px);
+      transition:transform .16s ease,box-shadow .16s ease,opacity .16s;
       color:#fff;
     }
-    #yesBtn{ background:var(--yes); box-shadow:0 0 24px rgba(255,107,154,.45) }
-    #yesBtn:hover{ transform: scale(1.08) }
-    #noBtn{ background:var(--no); box-shadow:0 0 20px rgba(47,60,86,.45) }
-
-    @media (max-width:420px){
-      .buttons{gap:10px}
-      button{padding:11px 20px}
-    }
+    #yesBtn{background:var(--yes);box-shadow:0 0 24px rgba(255,107,154,.45)}
+    #yesBtn:hover{transform:scale(1.08)}
+    #noBtn{background:var(--no);box-shadow:0 0 20px rgba(47,60,86,.45)}
   </style>
 </head>
 <body>
-
-  <!-- Hareketli yıldızlı gece -->
   <canvas id="stars"></canvas>
-
   <div class="container">
-    <h1 id="title">Selam, ben Emrullah Reis 👑</h1>
+    <h1>Selam, ben Emrullah Reis 👑</h1>
     <img class="fluffy" src="fluffy.png" alt="Tüylü Mavi Karakter">
     <div class="buttons">
       <button id="yesBtn">💖 Evet</button>
       <button id="noBtn">🙈 Hayır</button>
     </div>
   </div>
-
-  <!-- Havai fişek -->
   <canvas id="fireworks"></canvas>
 
+  <!-- MÜZİK -->
+  <audio id="bgMusic" src="müzik.mp3" preload="auto"></audio>
+
   <script>
-  // =============== HiDPI Canvas Setup ===============
-  function setupHiDPICanvas(canvas){
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const rect = { w: innerWidth, h: innerHeight };
-    canvas.width  = rect.w * dpr;
-    canvas.height = rect.h * dpr;
-    canvas.style.width  = rect.w + 'px';
-    canvas.style.height = rect.h + 'px';
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    return {ctx, dpr};
+  // === Müzik ayarları ===
+  const music = document.getElementById("bgMusic");
+  music.volume = 0.6; // orta ses
+  music.currentTime = 120; // 2:00'dan başlat
+  music.play().catch(()=> {
+    // Tarayıcı otomatik başlatmayı engellerse tıklamayla başlat
+    document.body.addEventListener("click", ()=>music.play(), {once:true});
+  });
+
+  // === Canvas setup ===
+  function setupHiDPICanvas(c){
+    const dpr=Math.min(2,window.devicePixelRatio||1);
+    const r={w:innerWidth,h:innerHeight};
+    c.width=r.w*dpr;c.height=r.h*dpr;
+    c.style.width=r.w+"px";c.style.height=r.h+"px";
+    const ctx=c.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);
+    return{ctx,dpr};
   }
 
-  // =============== STARRY SKY (twinkle + drift + shooting) ===============
-  const starsCV = document.getElementById('stars');
-  let {ctx: sCtx} = setupHiDPICanvas(starsCV);
-
-  let STARS = [];
-  let SHOOTERS = [];
+  const starsCV=document.getElementById("stars");
+  let {ctx:sCtx}=setupHiDPICanvas(starsCV);
+  let STARS=[],SHOOTERS=[];
   function resetStars(){
-    ({ctx: sCtx} = setupHiDPICanvas(starsCV));
-    const count = Math.floor((innerWidth * innerHeight) / 9000) + 80;
-    STARS = Array.from({length:count}, () => ({
-      x: Math.random()*innerWidth,
-      y: Math.random()*innerHeight,
-      r: Math.random()*1.6 + 0.3,
-      baseA: Math.random()*0.6 + 0.25,
-      phase: Math.random()*Math.PI*2,
-      tw: 0.008 + Math.random()*0.02,     // twinkle speed
-      driftX: (Math.random() - .5) * 0.04, // horizontal drift
-      driftY: (Math.random() - .5) * 0.02  // vertical drift
+    ({ctx:sCtx}=setupHiDPICanvas(starsCV));
+    const count=Math.floor((innerWidth*innerHeight)/9000)+90;
+    STARS=Array.from({length:count},()=>({
+      x:Math.random()*innerWidth,
+      y:Math.random()*innerHeight,
+      r:Math.random()*1.6+0.3,
+      baseA:Math.random()*0.6+0.25,
+      phase:Math.random()*Math.PI*2,
+      tw:0.008+Math.random()*0.02,
+      driftX:(Math.random()-.5)*0.035,
+      driftY:(Math.random()-.5)*0.02
     }));
-    SHOOTERS = [];
+    SHOOTERS=[];
   }
-  resetStars();
-  addEventListener('resize', resetStars);
+  resetStars();addEventListener("resize",resetStars);
 
   function spawnShooter(){
-    const fromTop = Math.random() < .6;
-    const x = fromTop ? innerWidth * (0.55 + Math.random()*0.4) : innerWidth * (0.05 + Math.random()*0.3);
-    const y = fromTop ? innerHeight * (0.05 + Math.random()*0.2) : innerHeight * (0.35 + Math.random()*0.3);
-    const ang = fromTop ? Math.PI + Math.random()*0.6 : (Math.PI*1.6 + Math.random()*0.4);
-    const spd = 7 + Math.random()*4;
-    SHOOTERS.push({
-      x, y, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
-      life: 60 + Math.random()*20,
-      len: 140 + Math.random()*120,
-      hue: Math.floor(Math.random()*360)
-    });
+    const fromTop=Math.random()<.6;
+    const x=fromTop?innerWidth*(0.55+Math.random()*0.4):innerWidth*(0.05+Math.random()*0.3);
+    const y=fromTop?innerHeight*(0.05+Math.random()*0.2):innerHeight*(0.35+Math.random()*0.3);
+    const ang=fromTop?Math.PI+Math.random()*0.6:(Math.PI*1.6+Math.random()*0.4);
+    const spd=3.2+Math.random()*1.8;
+    SHOOTERS.push({x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:120+Math.random()*40,len:220+Math.random()*140,hue:Math.floor(Math.random()*360)});
   }
 
-  let lastShoot = 0;
+  let lastShoot=0;
   function drawStars(t=0){
     sCtx.clearRect(0,0,innerWidth,innerHeight);
-
-    const g = sCtx.createRadialGradient(innerWidth*0.7, innerHeight*0.1, 0, innerWidth*0.7, innerHeight*0.1, Math.max(innerWidth,innerHeight));
-    g.addColorStop(0, 'rgba(20,40,90,0.35)');
-    g.addColorStop(1, 'rgba(7,15,30,0)');
-    sCtx.fillStyle = g; sCtx.fillRect(0,0,innerWidth,innerHeight);
+    const g=sCtx.createRadialGradient(innerWidth*0.7,innerHeight*0.1,0,innerWidth*0.7,innerHeight*0.1,Math.max(innerWidth,innerHeight));
+    g.addColorStop(0,"rgba(20,40,90,0.35)");
+    g.addColorStop(1,"rgba(7,15,30,0)");
+    sCtx.fillStyle=g;sCtx.fillRect(0,0,innerWidth,innerHeight);
 
     for(const s of STARS){
-      s.phase += s.tw;
-      s.x += s.driftX; s.y += s.driftY;
-      if(s.x<-5) s.x = innerWidth+5; if(s.x>innerWidth+5) s.x = -5;
-      if(s.y<-5) s.y = innerHeight+5; if(s.y>innerHeight+5) s.y = -5;
-      const a = s.baseA + Math.sin(s.phase)*0.28;
-      sCtx.globalAlpha = Math.max(0, Math.min(1, a));
-      sCtx.beginPath(); sCtx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-      sCtx.fillStyle = 'rgba(220,235,255,1)';
-      sCtx.fill();
+      s.phase+=s.tw;s.x+=s.driftX;s.y+=s.driftY;
+      if(s.x<-5)s.x=innerWidth+5;if(s.x>innerWidth+5)s.x=-5;
+      if(s.y<-5)s.y=innerHeight+5;if(s.y>innerHeight+5)s.y=-5;
+      const a=s.baseA+Math.sin(s.phase)*0.28;
+      sCtx.globalAlpha=Math.max(0,Math.min(1,a));
+      sCtx.beginPath();sCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      sCtx.fillStyle="rgba(220,235,255,1)";sCtx.fill();
     }
-    sCtx.globalAlpha = 1;
+    sCtx.globalAlpha=1;
 
-    if (t - lastShoot > 1500 + Math.random()*3000 && SHOOTERS.length < 2){
-      spawnShooter(); lastShoot = t;
+    if(t-lastShoot>700+Math.random()*1200&&SHOOTERS.length<4){spawnShooter();lastShoot=t;}
+    for(let i=SHOOTERS.length-1;i>=0;i--){
+      const sh=SHOOTERS[i];
+      sh.x+=sh.vx;sh.y+=sh.vy;sh.life--;
+      const grad=sCtx.createLinearGradient(sh.x,sh.y,sh.x-sh.vx*6,sh.y-sh.vy*6);
+      grad.addColorStop(0,`hsla(${sh.hue},100%,80%,0.9)`);
+      grad.addColorStop(1,`hsla(${sh.hue},100%,50%,0)`);
+      sCtx.strokeStyle=grad;sCtx.lineWidth=2;
+      sCtx.beginPath();sCtx.moveTo(sh.x,sh.y);
+      sCtx.lineTo(sh.x-(sh.vx*(sh.len/10)),sh.y-(sh.vy*(sh.len/10)));sCtx.stroke();
+      if(sh.life<=0||sh.x<-200||sh.x>innerWidth+200||sh.y<-200||sh.y>innerHeight+200){SHOOTERS.splice(i,1);}
     }
-    for (let i = SHOOTERS.length-1; i >= 0; i--){
-      const sh = SHOOTERS[i];
-      sh.x += sh.vx; sh.y += sh.vy; sh.life--;
-      const grad = sCtx.createLinearGradient(sh.x, sh.y, sh.x - sh.vx*6, sh.y - sh.vy*6);
-      grad.addColorStop(0, `hsla(${sh.hue},100%,80%,0.9)`);
-      grad.addColorStop(1, `hsla(${sh.hue},100%,50%,0)`);
-      sCtx.strokeStyle = grad;
-      sCtx.lineWidth = 2;
-      sCtx.beginPath();
-      sCtx.moveTo(sh.x, sh.y);
-      sCtx.lineTo(sh.x - (sh.vx* (sh.len/10)), sh.y - (sh.vy* (sh.len/10)));
-      sCtx.stroke();
-
-      if (sh.life <= 0 || sh.x<-200 || sh.x>innerWidth+200 || sh.y<-200 || sh.y>innerHeight+200){
-        SHOOTERS.splice(i,1);
-      }
-    }
-
     requestAnimationFrame(drawStars);
   }
   requestAnimationFrame(drawStars);
 
-  // =============== BUTTONS + FIREWORKS ===============
-  const yesBtn = document.getElementById('yesBtn');
-  const noBtn  = document.getElementById('noBtn');
-  const fwCV   = document.getElementById('fireworks');
-  let {ctx: fCtx} = setupHiDPICanvas(fwCV);
+  const yesBtn=document.getElementById("yesBtn"),noBtn=document.getElementById("noBtn");
+  const fwCV=document.getElementById("fireworks");
+  let {ctx:fCtx}=setupHiDPICanvas(fwCV);
+  addEventListener("resize",()=>({ctx:fCtx}=setupHiDPICanvas(fwCV)));
 
-  addEventListener('resize', ()=>({ctx: fCtx} = setupHiDPICanvas(fwCV)));
-
-  // Hayır küçülür, Evet büyür
-  let noScale=1, yesScale=1;
-  noBtn.addEventListener('click', ()=>{
-    noScale *= 0.85;
-    yesScale *= 1.12;
-    noBtn.style.transform  = `scale(${noScale})`;
-    yesBtn.style.transform = `scale(${yesScale})`;
-    if(noScale < 0.3){
-      noBtn.style.opacity = 0;
-      setTimeout(()=>noBtn.style.display='none', 120);
-    }
+  let noScale=1,yesScale=1;
+  noBtn.addEventListener("click",()=>{
+    noScale*=0.85;yesScale*=1.12;
+    noBtn.style.transform=`scale(${noScale})`;
+    yesBtn.style.transform=`scale(${yesScale})`;
+    if(noScale<0.3){noBtn.style.opacity=0;setTimeout(()=>noBtn.style.display="none",120);}
   });
-
-  yesBtn.addEventListener('click', ()=>{
-    yesBtn.textContent = "Teşekkür ederim! Seni seviyorum 💙";
-    yesBtn.style.transform = 'scale(1.18)';
+  yesBtn.addEventListener("click",()=>{
+    yesBtn.textContent="Teşekkür ederim! Seni seviyorum 💙";
+    yesBtn.style.transform="scale(1.18)";
     startFireworks(4200);
   });
 
-  // --- Fireworks ---
-  const fwParts = [];
-  function rnd(a,b){ return Math.random()*(b-a)+a }
+  const fwParts=[];
+  function rnd(a,b){return Math.random()*(b-a)+a}
   function fireworkAt(x,y){
-    const N = 90;
-    const hue = Math.floor(Math.random()*360);
+    const N=90;const hue=Math.floor(Math.random()*360);
     for(let i=0;i<N;i++){
-      const ang = Math.random()*Math.PI*2;
-      const spd = rnd(2.2,6.2);
-      fwParts.push({
-        x,y,
-        vx: Math.cos(ang)*spd,
-        vy: Math.sin(ang)*spd - rnd(0.5,1.2),
-        r: rnd(1.6,3.2),
-        a: 1,
-        col: `hsl(${(hue + rnd(-20,20))|0}, 100%, 60%)`
-      });
+      const ang=Math.random()*Math.PI*2;
+      const spd=rnd(2.2,5.0);
+      fwParts.push({x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-rnd(0.4,1.0),r:rnd(1.6,3.2),a:1,col:`hsl(${(hue+rnd(-20,20))|0},100%,60%)`});
     }
   }
   function startFireworks(ms=3500){
-    const t0 = performance.now();
-    const timer = setInterval(()=>{
-      fireworkAt(rnd(0,innerWidth), rnd(0, innerHeight*0.75));
-      if (performance.now() - t0 > ms) clearInterval(timer);
-    }, 260);
+    const t0=performance.now();
+    const timer=setInterval(()=>{
+      fireworkAt(rnd(0,innerWidth),rnd(0,innerHeight*0.75));
+      if(performance.now()-t0>ms)clearInterval(timer);
+    },260);
   }
-
   function drawFW(){
     fCtx.clearRect(0,0,innerWidth,innerHeight);
     for(let i=fwParts.length-1;i>=0;i--){
-      const p = fwParts[i];
-      p.x += p.vx; p.y += p.vy;
-      p.vy += 0.12; p.vx *= 0.99; p.vy *= 0.99;
-      p.a  -= 0.012;
-
-      if(p.a <= 0 || p.y > innerHeight+40){
-        fwParts.splice(i,1); continue;
-      }
-      fCtx.globalCompositeOperation = 'lighter';
-      fCtx.globalAlpha = Math.max(0, p.a);
-      fCtx.fillStyle = p.col;
-      fCtx.beginPath(); fCtx.arc(p.x, p.y, p.r, 0, Math.PI*2); fCtx.fill();
-      fCtx.globalCompositeOperation = 'source-over';
-      fCtx.globalAlpha = 1;
+      const p=fwParts[i];
+      p.x+=p.vx;p.y+=p.vy;
+      p.vy+=0.11;p.vx*=0.992;p.vy*=0.992;p.a-=0.012;
+      if(p.a<=0||p.y>innerHeight+40){fwParts.splice(i,1);continue;}
+      fCtx.globalCompositeOperation="lighter";
+      fCtx.globalAlpha=Math.max(0,p.a);
+      fCtx.fillStyle=p.col;
+      fCtx.beginPath();fCtx.arc(p.x,p.y,p.r,0,Math.PI*2);fCtx.fill();
+      fCtx.globalCompositeOperation="source-over";fCtx.globalAlpha=1;
     }
     requestAnimationFrame(drawFW);
   }
