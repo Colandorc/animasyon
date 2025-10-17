@@ -1,164 +1,300 @@
 <!doctype html>
 <html lang="tr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>emrullahaydogdu design · plush</title>
-<meta name="theme-color" content="#0b1428" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benim sevgilim olur musun?</title>
+<meta name="theme-color" content="#101828">
 <style>
-  :root{ --bg1:#0b1428; --bg2:#1b2a4f; --glass:rgba(255,255,255,.06); --line:rgba(255,255,255,.14); }
+  :root{
+    --bg1:#0f172a; --bg2:#15213d;
+    --pink:#ff5fa2; --pink-d:#e24f8f;
+    --mint:#21d4b4; --yes:#28c76f; --no:#ef4444;
+    --glass:rgba(255,255,255,.08); --line:rgba(255,255,255,.18);
+  }
+  *{box-sizing:border-box}
   html,body{height:100%;margin:0}
   body{
-    background: radial-gradient(1400px 900px at 70% 8%, var(--bg2), var(--bg1));
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-    color:#eef6ff; overflow:hidden;
+    background: radial-gradient(1200px 800px at 70% 0%, var(--bg2), var(--bg1));
+    color:#e6f0ff; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+    overflow:hidden;
   }
+
+  /* başlık */
+  header{
+    position:fixed; inset:0 auto auto 0; width:100%;
+    text-align:center; padding:18px 12px 8px; z-index:10;
+    pointer-events:none;
+  }
+  h1{
+    margin:0; font-size:clamp(20px,4.5vw,36px); font-weight:800; letter-spacing:.2px;
+    text-shadow:0 2px 16px rgba(0,0,0,.45);
+  }
+  .sub{opacity:.82; font-size:clamp(12px,2.6vw,14px); margin-top:6px}
+
+  /* ana sahne */
   .stage{ position:fixed; inset:0; display:grid; place-items:center; }
   .wrap{
-    position:relative; width:min(86vmin, 860px); aspect-ratio:1/1;
-    filter: drop-shadow(0 40px 80px rgba(0,0,0,.5)); user-select:none; -webkit-user-drag:none;
-    transform-style:preserve-3d; perspective:800px;
+    position:relative; width:min(92vmin, 780px); aspect-ratio:1/1.05;
   }
-  #monster{
-    position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
-    transform-origin:50% 60%; will-change:transform; display:none; /* resim gelene kadar gizle */
+
+  /* sevimli karakter (SVG) */
+  .pet{
+    position:absolute; inset:0; display:grid; place-items:center; pointer-events:none;
+    filter: drop-shadow(0 30px 60px rgba(0,0,0,.55));
   }
-  canvas.fx{ position:absolute; inset:0; width:100%; height:100%; display:none; pointer-events:none; } /* başta kapalı */
-  .shadow{
-    position:absolute; left:50%; bottom:3.5%; transform:translateX(-50%);
-    width:62%; height:26px; border-radius:50%;
-    background: radial-gradient(closest-side, rgba(0,0,0,.32), rgba(0,0,0,0));
-    filter: blur(2px); display:none; /* başta kapalı */
+  svg{ width:80%; max-width:620px; height:auto; }
+
+  /* pankart */
+  .board{
+    fill:#ffffff; stroke:#dfe7ff; stroke-width:4;
+    filter: drop-shadow(0 12px 20px rgba(0,0,0,.25));
   }
-  .hint{
-    position:fixed; left:14px; top:12px; z-index:20; font-size:13px;
+  .board-text{ fill:#0f172a; font-weight:800; font-size:22px; text-anchor:middle }
+  @media (min-width:520px){ .board-text{ font-size:26px } }
+
+  /* butonlar */
+  .buttons{
+    position:absolute; left:50%; bottom:20px; transform:translateX(-50%);
+    display:flex; gap:14px; z-index:9;
+  }
+  button{
+    border:none; padding:14px 22px; border-radius:14px; font-weight:800;
+    font-size:clamp(14px,3.6vw,18px); cursor:pointer;
+    box-shadow:0 10px 24px rgba(0,0,0,.25);
+    transition:transform .15s ease, box-shadow .2s ease, background .2s ease;
+    touch-action:none; user-select:none;
+  }
+  #yes{
+    background:linear-gradient(180deg, #2fe18a, var(--yes));
+    color:#06230f;
+  }
+  #yes:hover{ transform:translateY(-2px) scale(1.03) }
+  #no{
+    background:linear-gradient(180deg, #ff6b6b, var(--no));
+    color:#2b0b0b; position:fixed; /* kaçabilsin */
+    left:calc(50% + 90px); bottom:90px;
+  }
+
+  /* kalp parçacıkları */
+  .hearts{
+    position:fixed; inset:0; pointer-events:none; z-index:8;
+    background:
+      radial-gradient(600px 300px at 15% -10%, rgba(255,96,170,.18), transparent 60%),
+      radial-gradient(600px 300px at 85% -15%, rgba(33,212,180,.16), transparent 60%);
+  }
+  .heart{
+    position:absolute; font-size:18px; opacity:0; transform:translate(-50%,-50%) scale(.6);
+    animation: pop 1s ease forwards;
+  }
+  @keyframes pop{
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.6)}
+    40%{opacity:.95; transform:translate(-50%,-60%) scale(1.1)}
+    100%{opacity:0; transform:translate(-50%,-80%) scale(1)}
+  }
+
+  /* final ekranı */
+  .overlay{
+    position:fixed; inset:0; display:none; place-items:center; z-index:20;
+    background:linear-gradient(180deg, rgba(7,12,26,.75), rgba(7,12,26,.9));
+    backdrop-filter:blur(4px);
+  }
+  .card{
     background:var(--glass); border:1px solid var(--line);
-    padding:8px 12px; border-radius:12px; backdrop-filter: blur(6px); display:none;
+    padding:24px 26px; border-radius:18px; text-align:center; max-width:min(92%,540px);
+    box-shadow:0 30px 80px rgba(0,0,0,.45);
   }
-  @media (max-width:520px){ .hint{ display:none } }
-  .credit{
-    position:fixed; right:14px; bottom:12px; z-index:20;
-    font-size:12.5px; opacity:.95; background:var(--glass); border:1px solid var(--line);
-    padding:6px 10px; border-radius:10px; backdrop-filter:blur(6px)
+  .card h2{ margin:0 0 6px; font-size:clamp(20px,5.2vw,32px) }
+  .card p{ margin:8px 0 0; opacity:.9 }
+
+  /* ipucu */
+  .hint{
+    position:fixed; left:12px; bottom:12px; z-index:7;
+    background:var(--glass); border:1px solid var(--line); backdrop-filter:blur(6px);
+    padding:8px 12px; border-radius:12px; font-size:12px; opacity:.9;
   }
-  .msg{
-    position:fixed; inset:0; display:grid; place-items:center; text-align:center;
-    color:#bcd3ff; font-size:15px; opacity:.85;
-  }
+
+  /* güvenlik: taşınan no butonunun viewport dışına çıkmaması için görünmez tampon */
+  .safe{ position:fixed; inset:4px; pointer-events:none; }
+
 </style>
 </head>
 <body>
+<header>
+  <h1>Benim sevgilim olur musun? 💘</h1>
+  <div class="sub">“Hayır” kaçmaya meyilli, haberin olsun.</div>
+</header>
+
 <div class="stage">
   <div class="wrap" id="wrap">
-    <img id="monster" src="monster.png" alt="plush" />
-    <div class="shadow" id="shadow"></div>
-    <canvas id="bloom" class="fx"></canvas>
-    <canvas id="spark" class="fx"></canvas>
-    <canvas id="glow"  class="fx"></canvas>
+
+    <!-- sevimli karakter + pankart (tamamen SVG) -->
+    <div class="pet">
+      <svg viewBox="0 0 600 640" aria-hidden="true">
+        <!-- gövde -->
+        <defs>
+          <radialGradient id="gBody" cx="50%" cy="40%" r="55%">
+            <stop offset="0%" stop-color="#65e2ff"/>
+            <stop offset="70%" stop-color="#3bb7f0"/>
+            <stop offset="100%" stop-color="#1d6bd0"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="300" cy="340" rx="200" ry="220" fill="url(#gBody)"/>
+        <!-- gölge -->
+        <ellipse cx="300" cy="560" rx="140" ry="22" fill="rgba(0,0,0,.35)" filter="blur(2px)"/>
+        <!-- gözler -->
+        <circle cx="242" cy="310" r="34" fill="#121926"/>
+        <circle cx="356" cy="310" r="34" fill="#121926"/>
+        <circle cx="230" cy="298" r="10" fill="#fff"/>
+        <circle cx="344" cy="298" r="10" fill="#fff"/>
+        <!-- minik burun -->
+        <ellipse cx="300" cy="350" rx="16" ry="10" fill="#0d223a"/>
+        <!-- kollar -->
+        <path d="M160,360 C110,340 110,300 150,290" stroke="#1f5fb8" stroke-width="24" fill="none" stroke-linecap="round"/>
+        <path d="M440,360 C490,340 490,300 450,290" stroke="#1f5fb8" stroke-width="24" fill="none" stroke-linecap="round"/>
+        <!-- pankart -->
+        <rect x="140" y="180" width="320" height="90" rx="16" class="board"/>
+        <text x="300" y="237" class="board-text" id="boardText">Beni zorlama 😅</text>
+      </svg>
+    </div>
+
+    <!-- butonlar -->
+    <div class="buttons">
+      <button id="yes">Evet 💖</button>
+      <!-- Hayır kaçabilsin diye fixed konumda; JS ile taşıyoruz -->
+    </div>
+
+    <button id="no">Hayır 🙈</button>
+
   </div>
 </div>
-<div class="hint" id="hint">🩵 dokun / hareket ettir: hafif parallax</div>
-<div class="credit">emrullahaydogdu design</div>
-<div class="msg" id="msg">monster.png yüklenince burada “mavi tüylü” gözükecek.<br/>Lütfen dosyayı repoya ekle ve sayfayı yenile.</div>
+
+<div class="hearts" id="hearts"></div>
+<div class="safe" id="safe"></div>
+
+<div class="hint">İpucu: “Hayır” üstüne gelince kaçar. Kaçtıkça “Evet” büyür 😉</div>
+
+<!-- Final -->
+<div class="overlay" id="overlay">
+  <div class="card">
+    <h2>Hayırlı olsun! 🎉</h2>
+    <p>Resmî olarak “Evet”e bastın. Artık kaçış yok, beraberiz. 💍</p>
+  </div>
+</div>
 
 <script>
-const IMG_SRC = 'monster.png';           // resim adın farklıysa değiştir
-const BREATH = { amp: 0.012, speed: 2.0 };
-const PARALLAX = 10;
-const SPARKLES = 16;
-const BLOOM_STRENGTH = 0.55;
+/* ---------------- ayarlar ---------------- */
+const YES_GROW_STEP = 0.10;   // her kaçışta EVET ne kadar büyüsün
+const YES_MAX_SCALE  = 3.2;   // en fazla büyüklük
+const BOARD_LINES    = [
+  "Beni zorlama 😅",
+  "Evet de gidelim!",
+  "Hayır kaçmayı seviyor galiba…",
+  "EVET koskocaman oldu bak 💘"
+];
 
-const wrap  = document.getElementById('wrap');
-const imgEl = document.getElementById('monster');
-const shadow= document.getElementById('shadow');
-const hint  = document.getElementById('hint');
-const msg   = document.getElementById('msg');
-const cBloom= document.getElementById('bloom'), xBloom=cBloom.getContext('2d');
-const cSpark= document.getElementById('spark'), xSpark=cSpark.getContext('2d');
-const cGlow = document.getElementById('glow'),  xGlow =cGlow.getContext('2d');
+/* --------------- elemanlar --------------- */
+const yesBtn   = document.getElementById('yes');
+const noBtn    = document.getElementById('no');
+const hearts   = document.getElementById('hearts');
+const overlay  = document.getElementById('overlay');
+const boardTxt = document.getElementById('boardText');
+const safeBox  = document.getElementById('safe');
 
-function fitCanvas(c){
-  const r = c.getBoundingClientRect();
-  const d = Math.max(1, Math.min(2, devicePixelRatio||1));
-  c.width = Math.floor(r.width*d); c.height = Math.floor(r.height*d);
-  c.style.width = r.width+'px'; c.style.height = r.height+'px';
-  c.getContext('2d').setTransform(d,0,0,d,0,0);
+let yesScale = 1;
+let escapeCount = 0;
+let yesLockedBig = false;
+
+/* -------------- yardımcılar -------------- */
+function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+function randomNoPosition(){
+  const safe = safeBox.getBoundingClientRect();
+  const bw = noBtn.offsetWidth, bh = noBtn.offsetHeight;
+
+  // ekranın daha görünür bir yerine kaçsın
+  const x = clamp(Math.random()*(safe.width - bw) + safe.left, safe.left, safe.right - bw);
+  const y = clamp(Math.random()*(safe.height - bh) + safe.top,  safe.top + 40, safe.bottom - bh);
+
+  noBtn.style.left = x + "px";
+  noBtn.style.top  = y + "px";
 }
-function fitAll(){ [cBloom,cSpark,cGlow].forEach(fitCanvas); }
-addEventListener('resize', fitAll, {passive:true}); fitAll();
 
-let t0 = performance.now();
-let px = 0, py = 0, cx = 0, cy = 0;
-function updateParallax(e){
-  const rect = wrap.getBoundingClientRect();
-  const x = (e.clientX - rect.left)/rect.width - 0.5;
-  const y = (e.clientY - rect.top)/rect.height - 0.5;
-  px = x*PARALLAX; py = y*PARALLAX;
-}
-wrap.addEventListener('pointermove', updateParallax, {passive:true});
-wrap.addEventListener('pointerdown', updateParallax, {passive:true});
-wrap.addEventListener('pointerleave', ()=>{ px=py=0; }, {passive:true});
-
-const stars = Array.from({length:SPARKLES}, ()=>({ x:Math.random(), y:Math.random(), r:60+Math.random()*120, t:Math.random()*Math.PI*2 }));
-
-function drawBloom(){
-  const w = cBloom.clientWidth, h = cBloom.clientHeight;
-  xBloom.clearRect(0,0,w,h);
-  const scale = 0.6, bw = w*scale, bh = h*scale, dx=(w-bw)/2, dy=(h-bh)/2;
-  xBloom.save();
-  xBloom.filter = 'blur(8px) brightness(1.15) saturate(1.08)';
-  xBloom.globalAlpha = BLOOM_STRENGTH;
-  xBloom.drawImage(imgEl, dx, dy, bw, bh);
-  xBloom.restore();
-}
-function drawSpark(initial){
-  const w = cSpark.clientWidth, h = cSpark.clientHeight;
-  xSpark.clearRect(0,0,w,h);
-  for(const s of stars){
-    if(!initial) s.t += 0.002;
-    const x = s.x*w + Math.sin(s.t)*6, y = s.y*h + Math.cos(s.t*1.3)*6;
-    const g = xSpark.createRadialGradient(x,y,0,x,y,s.r);
-    g.addColorStop(0,'rgba(255,255,255,.08)'); g.addColorStop(1,'rgba(255,255,255,0)');
-    xSpark.fillStyle = g; xSpark.beginPath(); xSpark.arc(x,y,s.r,0,Math.PI*2); xSpark.fill();
+function growYes(){
+  if(yesLockedBig) return;
+  yesScale = Math.min(YES_MAX_SCALE, yesScale + YES_GROW_STEP);
+  yesBtn.style.transform = `scale(${yesScale})`;
+  if(yesScale >= YES_MAX_SCALE){
+    yesLockedBig = true;
+    yesBtn.style.animation = "pulse .9s ease-in-out infinite alternate";
+    const s = document.createElement('style');
+    s.textContent = `@keyframes pulse{to{transform:scale(${YES_MAX_SCALE*1.05})}}`;
+    document.head.appendChild(s);
   }
 }
-function drawGlow(t){
-  const w = cGlow.clientWidth, h = cGlow.clientHeight;
-  xGlow.clearRect(0,0,w,h);
-  const pulse = (Math.sin(t*0.0014)+1)/2, R = 180 + pulse*80;
-  const x = w*0.52, y = h*0.38;
-  const g = xGlow.createRadialGradient(x,y,0,x,y,R);
-  g.addColorStop(0, `rgba(255,255,255,${0.10 + pulse*0.05})`); g.addColorStop(1,'rgba(255,255,255,0)');
-  xGlow.fillStyle = g; xGlow.beginPath(); xGlow.arc(x,y,R,0,Math.PI*2); xGlow.fill();
+
+function updateBoard(){
+  const idx = Math.min(BOARD_LINES.length-1, Math.floor(escapeCount/2));
+  boardTxt.textContent = BOARD_LINES[idx];
 }
 
-let running = false;
-function loop(){
-  if(!running) return;
-  const t = performance.now(); const dt = Math.min(33, t - t0); t0 = t;
-  const breath = 1 + Math.sin(t*0.001*2.0)*0.012;
-  cx += (px - cx) * 0.08; cy += (py - cy) * 0.08;
-  imgEl.style.transform = `translate3d(${cx}px,${cy}px,0) scale(${breath})`;
-  drawGlow(t);
-  if ((t|0)%60<16) drawSpark(false);
-  requestAnimationFrame(loop);
+function popHeart(x,y){
+  const h = document.createElement('div');
+  h.className = 'heart';
+  h.textContent = Math.random()>.5 ? '💖' : '💘';
+  h.style.left = x + 'px'; h.style.top = y + 'px';
+  hearts.appendChild(h);
+  setTimeout(()=>h.remove(), 1200);
 }
 
-// RESİM YÜKLENİNCE her şeyi aç
-imgEl.addEventListener('load', ()=>{
-  // göstergeleri aç
-  imgEl.style.display = '';
-  document.querySelectorAll('canvas.fx').forEach(c=>c.style.display='block');
-  shadow.style.display='block';
-  hint.style.display='block';
-  msg.style.display='none';
-  drawBloom(); drawSpark(true);
-  running = true; requestAnimationFrame(loop);
+/* --------- HAYIR kaçırma mantığı --------- */
+function runAway(evt){
+  // anında konumu değiştir
+  randomNoPosition();
+  escapeCount++;
+  updateBoard();
+  growYes();
+
+  // kalp patlat (olay noktasında)
+  const p = (evt.touches && evt.touches[0]) || evt;
+  popHeart(p.clientX || window.innerWidth/2, p.clientY || window.innerHeight/2);
+
+  // bu butona tıklama/odak verme
+  evt.preventDefault();
+  evt.stopPropagation();
+  return false;
+}
+
+/* ----- olay bağla (mouse + touch) ----- */
+['pointerenter','pointerdown','touchstart'].forEach(t=>{
+  noBtn.addEventListener(t, runAway, {passive:false});
 });
-// hata olursa mesaj bırak
-imgEl.addEventListener('error', ()=>{
-  msg.innerHTML = `Resim bulunamadı: <b>${IMG_SRC}</b><br/>Lütfen dosyayı yükleyip sayfayı yenile.`;
+// yine de tıklarsa…
+noBtn.addEventListener('click', e=> runAway(e), {passive:false});
+
+/* --------- EVET'e basınca final --------- */
+yesBtn.addEventListener('click', ()=>{
+  overlay.style.display = 'grid';
+  boardTxt.textContent = "E V E T 💞";
+  // ufak kalp yağmuru
+  for(let i=0;i<24;i++){
+    setTimeout(()=>{
+      popHeart( Math.random()*innerWidth, Math.random()*innerHeight*0.8 + 40 );
+    }, i*40);
+  }
 });
+
+/* -------------- ilk yerleşim -------------- */
+function placeInitial(){
+  // "Hayır" başlangıçta da görünür ama kaçmaya hazır
+  noBtn.style.position = 'fixed';
+  if(!noBtn.style.left){ randomNoPosition(); }
+}
+placeInitial();
+addEventListener('resize', placeInitial);
+
+/* -------- küçük UX cilası: board yazısı -------- */
+setTimeout(()=> updateBoard(), 800);
 </script>
 </body>
 </html>
